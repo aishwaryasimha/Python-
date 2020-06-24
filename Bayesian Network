@@ -1,0 +1,48 @@
+
+import numpy as np
+import sys
+from urllib.request import urlopen
+import pandas as pd
+Cleveland_data_URL = "http://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/processed.hungarian.data"
+np.set_printoptions(threshold=sys.maxsize)
+names=['age','sex','çp','trestbps', 'çhol', 'fbs', 'restecg','thalach', 'exang', 'oldpeak', 'slope', 'ça', 'thal', 'heartdisease']
+heartdisease=pd.read_csv(urlopen(Cleveland_data_URL), names=names)
+heartdisease.head()
+del heartdisease['ça']
+del heartdisease['slope']
+del heartdisease['thal']
+del heartdisease['oldpeak']
+
+heartdisease = heartdisease.replace('?',np.nan)
+heartdisease.dtypes
+heartdisease.columns
+
+from pgmpy.models import BayesianModel
+from pgmpy.estimators import MaximumLikelihoodEstimator
+Model=BayesianModel([('age', 'trestbps'),
+('age', 'fbs'),
+('sex', 'trestbps'),
+('sex', 'trestbps'),
+('exang', 'trestbps'),
+('trestbps', 'heartdisease'),
+('fbs', 'heartdisease'),
+('heartdisease', 'restecg'),
+('heartdisease', 'thalach'),
+('heartdisease', 'chol')])
+
+Model.fit(heartdisease,estimator=MaximumLikelihoodEstimator)
+print(Model.get_cpds('age'))
+print(Model.get_cpds('chol'))
+print(Model.get_cpds('sex'))
+Model.get_independencies()
+from pgmpy.inference import VariableElimination
+heartdisease_infer=VariableElimination(Model)
+
+q=heartdisease_infer.query(variables=['heartdisease'],
+                           evidence={'age':28})
+print(q['heartdisease'])
+q=heartdisease_infer.query(variables=['heartdisease'],
+                           evidence={'chol':100})
+print(q['heartdisease'])
+                    
+
