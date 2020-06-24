@@ -1,0 +1,61 @@
+
+from sklearn.datasets import fetch_20newsgroups
+twenty_train=fetch_20newsgroups(subset='train',shuffle=True)
+x=len(twenty_train.target_names)
+
+print("\nThe number of categories:",x)
+print("The %d categories of 20 newsgroups\n"%x)
+
+i=1
+for cat in twenty_train.target_names:
+    print("Category[%d]:"%i,cat)
+    i=i+1
+    
+print("\nLength of training data is",len(twenty_train.data))
+print("\nLength of file names is",len(twenty_train.filenames))
+print("\The content/data of first file is:\n")
+print(twenty_train.data[0])
+print("\n The contents/data of first 10 files is in Training data:\n")
+
+for i in range(0,10):
+    print("\nFILE NO: %d\n"%(i+1))
+    print(twenty_train.data[i])
+categories={'alt.atheism','soc.religion.christian','comp.graphics','sci.med'}
+twenty_train=fetch_20newsgroups(subset='train',categories=categories,shuffle=True,random_state=42)
+
+print("\nReduced target names:\n",twenty_train.target_names)
+print("\nReduced target length:\n",len(twenty_train.data))
+print("\nFirst document:",twenty_train.data[0])
+
+from sklearn.feature_extraction.text import CountVectorizer
+count_vect=CountVectorizer()
+x_train_counts=count_vect.fit_transform(twenty_train.data)
+
+print("\n(Target Length,Distinct words):",x_train_counts.shape)
+print("\nFrequency of the word algorithm:",count_vect.vocabulary_.get('algorithm'))
+
+from sklearn.feature_extraction.text import TfidfTransformer
+tfidf_transformer=TfidfTransformer()
+x_train_tfidf=tfidf_transformer.fit_transform(x_train_counts)
+x_train_tfidf.shape
+
+from sklearn.naive_bayes import MultinomialNB
+clf=MultinomialNB().fit(x_train_tfidf,twenty_train.target)
+docs_new=['God is love','OpenGL on the GPU is fact']
+x_new_counts=count_vect.transform(docs_new)
+x_new_tfidf=tfidf_transformer.transform(x_new_counts)
+predicted=clf.predict(x_new_tfidf)
+for doc,category in zip(docs_new,predicted):
+    print('%r=>%s'%(doc,twenty_train.target_names[category]))
+    
+from sklearn.pipeline import Pipeline
+text_clf=Pipeline([('vect',CountVectorizer()),('tfidf',TfidfTransformer()),('clf',MultinomialNB()),])
+text_clf.fit(twenty_train.data,twenty_train.target)
+import numpy as np
+twenty_test=fetch_20newsgroups(subset='test',categories=categories,shuffle=True,random_state=42)
+docs_test=twenty_test.data
+predicted=text_clf.predict(docs_test)
+np.mean(predicted==twenty_test.target)
+from sklearn import metrics
+print(metrics.classification_report(twenty_test.target,predicted,target_names=twenty_test.target_names))
+
